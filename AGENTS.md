@@ -1,9 +1,26 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# Reservas de canchas
 
-## This is NOT the Next.js you know
+Sistema de reservas para una empresa con 3 canchas.
+Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a las 22:00).
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+## Comandos
+- Instalar: `npm ci`
+- Pruebas: `npm test`
+- Estilo: `npm run lint`
+- Desarrollo: `npm run dev`
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+## Arquitectura
+- `app/`: páginas de Next.js (App Router)
+- `lib/`: reglas de negocio puras (ej. `lib/reservas.ts`)
+- `tests/`: pruebas con Vitest
+- `supabase/migrations/`: esquema de la base de datos (Postgres)
+- `docs/adr/`: decisiones de arquitectura
 
-<!-- END:nextjs-agent-rules -->
+## Reglas
+- Dependencias solo con `npm install`; nunca editar `package-lock.json` a mano.
+- Toda regla de negocio va en `lib/` y lleva su prueba en `tests/`.
+- Cambios en la base de datos solo como migración nueva en `supabase/migrations/`.
+- Antes de terminar una tarea, corre `npm test` y `npm run lint`.
+
+## No tocar
+- Nunca leer ni mostrar `.env.local` ni keys de Supabase.
