@@ -3,6 +3,15 @@
 Sistema de reservas para una empresa con 3 canchas.
 Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a las 22:00).
 
+## Glosario
+- Cancha: una de las 3 canchas (Cancha 1, 2 y 3).
+- Cliente: persona que reserva (nombre y teléfono).
+- Bloque: 1 hora; puede empezar de 10:00 a 22:00 (cierre 23:00).
+- Reserva: un cliente + una cancha + una fecha + un bloque.
+- Estado de la reserva: pendiente, confirmada o cancelada.
+- Cambios de estado: pendiente → confirmada; pendiente o confirmada → cancelada. Una cancelada no vuelve atrás.
+- Regla: no puede haber dos reservas no canceladas en la misma cancha, fecha y bloque.
+
 ## Comandos
 - Instalar: `npm ci`
 - Pruebas: `npm test`
