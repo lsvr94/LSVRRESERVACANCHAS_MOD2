@@ -11,6 +11,7 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 - Estado de la reserva: pendiente, confirmada o cancelada.
 - Cambios de estado: pendiente → confirmada; pendiente o confirmada → cancelada. Una cancelada no vuelve atrás.
 - Regla: no puede haber dos reservas no canceladas en la misma cancha, fecha y bloque.
+- Zona horaria del negocio: America/Lima. "Hoy" se calcula en la app con esa zona, nunca con now() de la base (que está en UTC).
 
 ## Comandos
 - Instalar: `npm ci`
@@ -31,6 +32,7 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 - Cambios en la base de datos solo como migración nueva en `supabase/migrations/`.
 - Antes de terminar una tarea, corre `npm test` y `npm run lint`.
 - Antes de cada commit corre husky (ESLint). Si falla, corrige; nunca uses `--no-verify`.
+- Zona horaria del negocio: America/Lima. "Hoy" se calcula en la app con esa zona, nunca con now() de la base (que está en UTC).
 
 ## No tocar
 - Nunca leer ni mostrar `.env.local` ni keys de Supabase.
