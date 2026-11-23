@@ -30,6 +30,7 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 - Toda regla de negocio va en `lib/` y lleva su prueba en `tests/`.
 - Cambios en la base de datos solo como migración nueva en `supabase/migrations/`.
 - Antes de terminar una tarea, corre `npm test` y `npm run lint`.
+- Antes de cada commit corre husky (ESLint). Si falla, corrige; nunca uses `--no-verify`.
 
 ## No tocar
 - Nunca leer ni mostrar `.env.local` ni keys de Supabase.
