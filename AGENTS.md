@@ -13,6 +13,14 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 - Regla: no puede haber dos reservas no canceladas en la misma cancha, fecha y bloque.
 - Zona horaria del negocio: America/Lima. "Hoy" se calcula en la app con esa zona, nunca con now() de la base (que está en UTC).
 
+## Levantar el sistema
+1. Abre Docker Desktop.
+2. `npm ci`
+3. `npx supabase start` (Postgres local; URL y keys con `npx supabase status`).
+4. `npx supabase db reset`: aplica migraciones y seed. **Borra los datos locales.**
+5. Crea `.env.local` con `SUPABASE_URL=` y `SUPABASE_SECRET_KEY=` (valores de `npx supabase status`; nunca los subas al repo).
+6. `npm run dev` y abre `http://localhost:3000/reservas`.
+
 ## Comandos
 - Instalar: `npm ci`
 - Pruebas: `npm test`

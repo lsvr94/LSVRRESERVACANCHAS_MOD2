@@ -80,3 +80,43 @@ Riesgos conocidos que se aceptan mientras el sistema sea un MVP que corre en loc
 |---|---|---|
 | **Cualquiera puede crear reservas para cualquier `cliente_id`**, sin login ni límite de peticiones. La API usa la clave secreta de Supabase, que omite RLS. | No hay login por decisión (ADR-0001) y el sistema no está publicado. | **Antes de publicar en internet:** límite de peticiones por IP, verificar al cliente (login o código por SMS) y exigir `Content-Type: application/json` en el POST. |
 | **Exposición de datos personales:** `GET /api/reservas/[id]` usa ids consecutivos y muestra el nombre del cliente; `CLIENTE_NO_EXISTE` revela qué ids de cliente existen. | Solo hay clientes de prueba del seed. | **Antes de cargar datos reales de clientes:** quitar el nombre de la respuesta o usar un identificador público aleatorio (uuid). |
+
+## 5. Modelo de datos
+
+Las 4 tablas del esquema (Postgres en Supabase) y sus relaciones.
+
+```mermaid
+erDiagram
+    CANCHAS ||--o{ TARIFAS : "tiene"
+    CANCHAS ||--o{ RESERVAS : "se reserva en"
+    CLIENTES ||--o{ RESERVAS : "hace"
+
+    CANCHAS {
+        smallint id PK
+        text nombre UK
+    }
+    TARIFAS {
+        bigint id PK
+        smallint cancha_id FK
+        smallint hora_desde "10 a 22"
+        smallint hora_hasta "11 a 23; franjas sin solaparse"
+        numeric precio_hora "soles, mayor que 0"
+    }
+    CLIENTES {
+        bigint id PK
+        text nombre
+        text telefono UK
+    }
+    RESERVAS {
+        bigint id PK
+        bigint cliente_id FK
+        smallint cancha_id FK
+        date fecha
+        smallint hora_inicio "10 a 22"
+        text estado "pendiente, confirmada o cancelada"
+        numeric precio "copiado de la tarifa por trigger"
+        timestamptz creada_en
+    }
+```
+
+El diagrama no muestra: el índice único parcial `(fecha, cancha_id, hora_inicio)` para reservas no canceladas (regla anti-choque), los triggers que fijan el precio desde `tarifas` y que RLS está activo en las 4 tablas. Detalle en `supabase/migrations/`.
