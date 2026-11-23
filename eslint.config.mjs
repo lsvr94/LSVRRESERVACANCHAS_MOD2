@@ -22,6 +22,27 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // Las pantallas usan solo la API con fetch (AGENTS.md): nada de servidor/ ni de Supabase.
+  {
+    files: ["app/reservas/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "(^|/)servidor(/|$)",
+              message: "Las pantallas usan solo la API con fetch; no importes de servidor/ (AGENTS.md).",
+            },
+            {
+              regex: "^@supabase/",
+              message: "Las pantallas no hablan con la base; usa la API con fetch (AGENTS.md).",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

@@ -28,6 +28,7 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
   - `reservas` puede usar `canchas`, nunca al revés (lo hace cumplir ESLint).
 - `servidor/`: acceso a datos por contexto (`servidor/canchas/`, `servidor/reservas/`) y cliente de Supabase; solo servidor (`server-only`). Misma regla entre contextos.
 - `app/api/(canchas)/` y `app/api/(reservas)/`: rutas de la API agrupadas por contexto.
+- `app/reservas/` (pantallas): usa solo la API con `fetch`; nunca importa de `servidor/` ni de `@supabase/` (lo hace cumplir ESLint).
 - Errores de la API, formato único: `{ "error": { "codigo", "mensaje", "campos"? } }` (`campos` solo en errores de validación).
 - 404 solo si no existe el recurso de la URL; 422 para datos inválidos o datos del cuerpo que no existen; 409 para choque de reservas.
 - `tests/`: pruebas con Vitest
