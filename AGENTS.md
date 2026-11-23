@@ -25,7 +25,9 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
   - `lib/canchas/`: canchas y tarifas.
   - `lib/reservas/`: clientes, reservas y disponibilidad.
   - `lib/compartido/`: tipos comunes (formato de error).
-  - `reservas` puede usar `canchas`, nunca al revés.
+  - `reservas` puede usar `canchas`, nunca al revés (lo hace cumplir ESLint).
+- `servidor/`: acceso a datos por contexto (`servidor/canchas/`, `servidor/reservas/`) y cliente de Supabase; solo servidor (`server-only`). Misma regla entre contextos.
+- `app/api/(canchas)/` y `app/api/(reservas)/`: rutas de la API agrupadas por contexto.
 - Errores de la API, formato único: `{ "error": { "codigo", "mensaje", "campos"? } }` (`campos` solo en errores de validación).
 - 404 solo si no existe el recurso de la URL; 422 para datos inválidos o datos del cuerpo que no existen; 409 para choque de reservas.
 - `tests/`: pruebas con Vitest
@@ -42,3 +44,13 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 
 ## No tocar
 - Nunca leer ni mostrar `.env.local` ni keys de Supabase.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

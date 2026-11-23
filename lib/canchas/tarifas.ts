@@ -1,3 +1,6 @@
+/** Todos los precios están en soles. */
+export const MONEDA = "PEN";
+
 /** Franja de precio de una cancha: aplica a las horas de inicio en [hora_desde, hora_hasta). */
 export type Tarifa = {
   hora_desde: number;

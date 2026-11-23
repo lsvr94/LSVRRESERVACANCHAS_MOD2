@@ -40,25 +40,34 @@ flowchart LR
 
 ## 3. Componentes de la app (C4 nivel 3)
 
-Archivos previstos dentro de la App Next.js (todavía no existen). La validación va en dos capas, según la ADR-0002.
+Monolito modular con dos contextos: `canchas` (canchas y tarifas) y `reservas` (clientes, reservas y disponibilidad). `reservas` puede usar `canchas`, nunca al revés; ESLint lo hace cumplir. `lib/` tiene solo reglas puras y esquemas Zod; `servidor/` accede a Supabase. La validación va en dos capas, según la ADR-0002.
 
 ```mermaid
-flowchart LR
-    navegador["Navegador"]
-    db[("Supabase Postgres")]
-
+flowchart TB
     subgraph app["App Next.js"]
-        pagina["app/reservas/page.tsx<br/>(página)"]
-        acciones["app/reservas/actions.ts<br/>(server actions)"]
-        esquemas["lib/esquemas.ts<br/>(validación Zod)"]
-        reglas["lib/reservas.ts<br/>(reglas)"]
-        cliente_db["lib/supabase/server.ts<br/>(cliente de Supabase)"]
+        subgraph ctx_reservas["Contexto reservas"]
+            rutas_reservas["app/api/(reservas)/<br/>(disponibilidad, reservas)"]
+            esquemas["lib/reservas/<br/>(esquemas Zod y reglas puras)"]
+            datos_reservas["servidor/reservas/consultas.ts"]
+        end
+
+        subgraph ctx_canchas["Contexto canchas"]
+            ruta_canchas["app/api/(canchas)/canchas"]
+            datos_canchas["servidor/canchas/consultas.ts"]
+        end
+
+        cliente_db["servidor/supabase.ts<br/>(cliente de Supabase)"]
     end
 
-    navegador -->|"HTTP"| pagina
-    pagina -->|"Envía formulario"| acciones
-    acciones -->|"Valida entrada"| esquemas
-    esquemas -->|"Usa reglas puras"| reglas
-    acciones -->|"Lee y escribe"| cliente_db
-    cliente_db -->|"SQL (restricciones únicas y CHECK)"| db
+    db[("Supabase Postgres")]
+
+    rutas_reservas -->|"Valida entrada"| esquemas
+    rutas_reservas -->|"Lee y escribe"| datos_reservas
+    ruta_canchas -->|"Lee"| datos_canchas
+    ctx_reservas -->|"Usa (nunca al revés)"| ctx_canchas
+    datos_reservas --> cliente_db
+    datos_canchas --> cliente_db
+    cliente_db -->|"SQL (índice único parcial y CHECK)"| db
 ```
+
+Se quitaron, para simplificar, el navegador, `lib/canchas/tarifas.ts`, `lib/compartido/` y `servidor/http.ts` (formato de error y validación), y las flechas entre reglas puras; la dependencia reservas → canchas se muestra una sola vez, entre contextos.
