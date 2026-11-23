@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     }
 
     // Sin consulta previa de disponibilidad: el índice único decide (ADR-0002).
+    // El precio enviado es informativo: el trigger reservas_precio_insert lo recalcula desde tarifas.
     const resultado = await insertarReserva({ ...datos, precio });
     if ("error" in resultado) {
       const error = traducirErrorDeBase(resultado.error);

@@ -52,6 +52,7 @@ export async function horasOcupadas(canchaId: number, fecha: string): Promise<nu
 /**
  * Inserta sin consultar antes si el bloque está libre: el índice único decide
  * (ADR-0002). El error se devuelve para que la ruta lo traduzca.
+ * El precio final lo fija la base (trigger reservas_precio_insert), no este valor.
  */
 export async function insertarReserva(
   datos: CrearReserva & { precio: number },

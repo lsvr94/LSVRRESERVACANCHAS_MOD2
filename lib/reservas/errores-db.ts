@@ -20,6 +20,7 @@ function nombreDeRestriccion(mensaje = ""): string | null {
 export function traducirErrorDeBase(error: ErrorDeBase): ErrorApi {
   const restriccion = nombreDeRestriccion(error.message);
 
+  // Nombre del índice de supabase/migrations/*_esquema_reservas.sql (comentado en la base). No renombrar por separado.
   if (error.code === VIOLACION_UNICA && restriccion === "reservas_bloque_ocupado_unico") {
     return {
       status: 409,

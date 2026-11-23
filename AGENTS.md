@@ -16,6 +16,7 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 ## Comandos
 - Instalar: `npm ci`
 - Pruebas: `npm test`
+- Pruebas de integración (necesita Docker y `npx supabase start`): `npm run test:integracion`
 - Estilo: `npm run lint`
 - Desarrollo: `npm run dev`
 
