@@ -21,7 +21,13 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 
 ## Arquitectura
 - `app/`: páginas de Next.js (App Router)
-- `lib/`: reglas de negocio puras (ej. `lib/reservas.ts`)
+- `lib/`: reglas de negocio puras, en dos contextos (monolito modular):
+  - `lib/canchas/`: canchas y tarifas.
+  - `lib/reservas/`: clientes, reservas y disponibilidad.
+  - `lib/compartido/`: tipos comunes (formato de error).
+  - `reservas` puede usar `canchas`, nunca al revés.
+- Errores de la API, formato único: `{ "error": { "codigo", "mensaje", "campos"? } }` (`campos` solo en errores de validación).
+- 404 solo si no existe el recurso de la URL; 422 para datos inválidos o datos del cuerpo que no existen; 409 para choque de reservas.
 - `tests/`: pruebas con Vitest
 - `supabase/migrations/`: esquema de la base de datos (Postgres)
 - `docs/adr/`: decisiones de arquitectura

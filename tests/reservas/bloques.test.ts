@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esHoraDeInicioValida } from "../lib/reservas";
+import { esHoraDeInicioValida } from "../../lib/reservas/bloques";
 
 describe("esHoraDeInicioValida", () => {
   it("acepta 10 y 22", () => {
