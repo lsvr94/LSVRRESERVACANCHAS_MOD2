@@ -107,9 +107,52 @@ El hook pre-commit (husky + lint-staged) bloquea el commit de `lib/prueba.ts` po
 ![API disponibilidad](capturas/s2-03-api-disponibilidad.png)
 ![Diagramas C4](capturas/s2-04-diagramas-c4.png)
 ![Reserva exitosa](capturas/s2-05-pantalla-reserva-ok.png)
-![Choque 409](capturas/s2-06-pantalla-choque-409.png)
-![Pruebas de integración](capturas/s2-07-test-integracion.png)
-![Diagrama ER](capturas/s2-08-diagrama-er.png)
 ![Agente sabe levantar el sistema](capturas/s2-09-agente-levantar-sistema.png)
 ![Ejercicio 2.3](capturas/s2-10-ejercicio-2-3-tests.png)
 ![Mis reservas](capturas/s2-11-mis-reservas.png)
+
+
+## Sesión 3 · 25/11/2026 · MCP (Model Context Protocol)
+
+### Qué construí
+- Servidor MCP propio `reservas-archivos` en TypeScript (`mcp_servers/fs-server.ts`)
+  con las tools listar_archivos, leer_archivo, contar_lineas y buscar_texto.
+- Lo probé sin agente con `npm run mcp:probar` y con MCP Inspector
+  (mensajes JSON-RPC: initialize, tools/list, tools/call).
+- Lo conecté a Claude Code con `npm run mcp:configurar`.
+- Modo HTTP (`--http`) solo en 127.0.0.1:8765, con validación de Host y Origin.
+- Ejercicio 3.5: resource `adr://lista` y anotaciones (readOnlyHint,
+  destructiveHint, openWorldHint).
+- Ejercicio 3.6: `guardar_nota`, la única tool que escribe (solo en docs/notas/).
+
+### Decisiones que tomé
+- TypeScript en vez de Python: un solo lenguaje con Next + Supabase.
+- SDK MCP v2 fijado; nunca `@modelcontextprotocol/sdk` (v1). Quedó como regla en AGENTS.md.
+- Privilegio mínimo: todo es de solo lectura salvo `guardar_nota`, que usa el flag
+  `wx` (no sobrescribe), valida el nombre (a-z0-9-, de 1 a 40 caracteres) y acepta
+  un texto de hasta 5000 caracteres.
+- Rutas bloqueadas: .env*, .git, node_modules, .next, supabase/.temp, .mcp.json,
+  .codex, .gemini y .agents. Doble validación y control de enlaces simbólicos.
+- Lectura de hasta 100 000 bytes por archivo.
+- stdio: nada de console.log, porque stdout lleva el protocolo. Los logs van a
+  stderr y ESLint lo vigila.
+- HTTP solo local, con Host y Origin validados contra el DNS rebinding.
+  Nunca se publica sin autenticación ni HTTPS.
+- Resource vs tool: `adr://lista` solo entrega los nombres (datos). Para leer el
+  contenido, el agente tiene que usar una tool (`leer_archivo`).
+
+### Lo que aprendí
+La seguridad se programa en el servidor, no se le pide al agente. El agente solo
+puede hacer lo que el servidor expone.
+
+### Capturas
+![Rutas bloqueadas](capturas/s3-01-bloqueos-mcp.png)
+![MCP conectado](capturas/s3-02-mcp-conectado.png)
+![Agente usa MCP](capturas/s3-03-agente-usa-mcp.png)
+![MCP por HTTP](capturas/s3-04-mcp-http.png)
+![MCP Inspector](capturas/s3-05-inspector.png)
+![Resource adr://lista](capturas/s3-06-resource-adr.png)
+![guardar_nota](capturas/s3-07-guardar-nota.png)
+![Nota no se sobrescribe](capturas/s3-08-nota-no-sobrescribe.png)
+
+Pruebas: 182 en verde, y lint y tsc sin errores.
