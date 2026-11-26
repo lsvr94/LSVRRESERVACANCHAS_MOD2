@@ -27,7 +27,7 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 - Pruebas de integración (necesita Docker y `npx supabase start`): `npm run test:integracion`
 - Estilo: `npm run lint`
 - Servidor MCP de archivos: `npm run mcp:archivos` (stdio) o `npm run mcp:archivos -- --http` (http://127.0.0.1:8765/mcp)
-- Probar un servidor MCP sin agente: `npm run mcp:probar -- <servidor.ts|URL http> [herramienta] [clave=valor ...]` (ej.: `npm run mcp:probar -- mcp_servers/fs-server.ts leer_archivo ruta=AGENTS.md`)
+- Probar un servidor MCP sin agente: `npm run mcp:probar -- <servidor.ts|URL http> [herramienta [clave=valor ...] | uri://resource]` (ej.: `npm run mcp:probar -- mcp_servers/fs-server.ts leer_archivo ruta=AGENTS.md` o `npm run mcp:probar -- mcp_servers/fs-server.ts adr://lista`)
 - Configurar MCP en los agentes: `npm run mcp:configurar` (genera `.mcp.json`, `.codex/config.toml` y `.agents/mcp_config.json` con rutas absolutas de esta máquina; están en `.gitignore`, no se suben)
 - Desarrollo: `npm run dev`
 
@@ -40,7 +40,7 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
   - `reservas` puede usar `canchas`, nunca al revés (lo hace cumplir ESLint).
 - `servidor/`: acceso a datos por contexto (`servidor/canchas/`, `servidor/reservas/`) y cliente de Supabase; solo servidor (`server-only`). Misma regla entre contextos.
 - `app/api/(canchas)/` y `app/api/(reservas)/`: rutas de la API agrupadas por contexto.
-- `mcp_servers/`: servidores MCP (SDK v2), solo lectura. Nunca importan de `servidor/` ni de `@supabase/`, y nunca usan `console.log` (en stdio, stdout es el protocolo); lo hace cumplir ESLint.
+- `mcp_servers/`: servidores MCP (SDK v2), de solo lectura, con una única excepción: la herramienta `guardar_nota` (`mcp_servers/notas.ts`), que solo crea archivos nuevos en `docs/notas/` (nunca sobrescribe, modifica ni borra). Nunca importan de `servidor/` ni de `@supabase/`, nunca usan `console.log` (en stdio, stdout es el protocolo) y no importan funciones de escritura de `node:fs` (salvo `writeFile` y `mkdir` en `notas.ts`); lo hace cumplir ESLint.
 - `app/reservas/` (pantallas): usa solo la API con `fetch`; nunca importa de `servidor/` ni de `@supabase/` (lo hace cumplir ESLint).
 - Errores de la API, formato único: `{ "error": { "codigo", "mensaje", "campos"? } }` (`campos` solo en errores de validación).
 - 404 solo si no existe el recurso de la URL; 422 para datos inválidos o datos del cuerpo que no existen; 409 para choque de reservas.

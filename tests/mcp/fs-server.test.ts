@@ -1,6 +1,7 @@
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -28,11 +29,54 @@ afterAll(async () => {
 });
 
 describe("servidor MCP reservas-archivos (stdio)", () => {
-  it("se presenta con su nombre y expone las 4 herramientas con descripción", async () => {
+  it("se presenta con su nombre y expone las 5 herramientas con descripción", async () => {
     expect(cliente.getServerVersion()?.name).toBe("reservas-archivos");
     const { tools } = await cliente.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["buscar_texto", "contar_lineas", "leer_archivo", "listar_archivos"]);
+    expect(tools.map((t) => t.name).sort()).toEqual([
+      "buscar_texto",
+      "contar_lineas",
+      "guardar_nota",
+      "leer_archivo",
+      "listar_archivos",
+    ]);
     for (const t of tools) expect(t.description?.length).toBeGreaterThan(20);
+  });
+
+  it("las 4 herramientas de lectura están anotadas como solo lectura", async () => {
+    const { tools } = await cliente.listTools();
+    for (const nombre of ["listar_archivos", "leer_archivo", "contar_lineas", "buscar_texto"]) {
+      expect(tools.find((t) => t.name === nombre)?.annotations?.readOnlyHint, nombre).toBe(true);
+    }
+  });
+
+  it("guardar_nota está anotada como escritura no destructiva", async () => {
+    const { tools } = await cliente.listTools();
+    const nota = tools.find((t) => t.name === "guardar_nota");
+    expect(nota?.annotations?.readOnlyHint).toBe(false);
+    expect(nota?.annotations?.destructiveHint).toBe(false);
+  });
+
+  it("expone el resource adr://lista con los nombres de las ADR en texto plano", async () => {
+    const { resources } = await cliente.listResources();
+    const adr = resources.find((r) => r.uri === "adr://lista");
+    expect(adr?.mimeType).toBe("text/plain");
+
+    const { contents } = await cliente.readResource({ uri: "adr://lista" });
+    const nombres = (contents[0] as { text: string }).text.split("\n");
+    expect(nombres).toContain("0001-stack.md");
+    expect(nombres).toContain("0002-donde-viven-las-reglas.md");
+    expect(nombres).toContain("0003-microservicio-canchas.md");
+  });
+
+  it.each([
+    ["nombre '../x'", { nombre: "../x", texto: "hola" }, "Nombre inválido '../x'"],
+    ["nombre '.env'", { nombre: ".env", texto: "hola" }, "Nombre inválido '.env'"],
+    ["nombre 'Mayus'", { nombre: "Mayus", texto: "hola" }, "Nombre inválido 'Mayus'"],
+    ["texto de 5 001 caracteres", { nombre: "larga", texto: "x".repeat(5_001) }, "el máximo es 5 000"],
+  ])("guardar_nota con %s llega como error de herramienta, sin escribir", async (_caso, argumentos, mensaje) => {
+    const r = await cliente.callTool({ name: "guardar_nota", arguments: argumentos });
+    expect(r.isError).toBe(true);
+    expect(texto(r)).toContain(mensaje);
   });
 
   it("listar_archivos lista una carpeta del repo, sin protegidos", async () => {
@@ -96,5 +140,41 @@ describe("servidor MCP reservas-archivos (stdio)", () => {
     const r = await cliente.callTool({ name: "buscar_texto", arguments: { patron } });
     expect(r.isError).toBeFalsy();
     expect(texto(r)).toBe(`Sin coincidencias para '${patron}'`);
+  });
+});
+
+// guardar_nota escribe de verdad: se prueba contra una raíz temporal (FS_RAIZ), nunca contra el repo.
+describe("guardar_nota de punta a punta (raíz temporal)", () => {
+  const clienteNotas = new Client({ name: "prueba-notas", version: "0.0.0" });
+  let raizTemporal = "";
+
+  beforeAll(async () => {
+    raizTemporal = await mkdtemp(join(tmpdir(), "mcp-e2e-notas-"));
+    await clienteNotas.connect(
+      new StdioClientTransport({
+        command: join(RAIZ_REPO, "node_modules", ".bin", "tsx"),
+        args: [join(RAIZ_REPO, "mcp_servers", "fs-server.ts")],
+        cwd: RAIZ_REPO,
+        env: { PATH: process.env.PATH ?? "", FS_RAIZ: raizTemporal },
+        stderr: "ignore",
+      }),
+    );
+  }, 30_000);
+
+  afterAll(async () => {
+    await clienteNotas.close();
+    await rm(raizTemporal, { recursive: true, force: true });
+  });
+
+  it("crea la nota y no la sobrescribe la segunda vez", async () => {
+    const primera = await clienteNotas.callTool({ name: "guardar_nota", arguments: { nombre: "prueba", texto: "hola" } });
+    expect(primera.isError).toBeFalsy();
+    expect(texto(primera)).toBe("Nota guardada en docs/notas/prueba.md");
+    expect(await readFile(join(raizTemporal, "docs", "notas", "prueba.md"), "utf8")).toBe("hola");
+
+    const segunda = await clienteNotas.callTool({ name: "guardar_nota", arguments: { nombre: "prueba", texto: "otra" } });
+    expect(segunda.isError).toBe(true);
+    expect(texto(segunda)).toBe("Ya existe la nota 'prueba' (docs/notas/prueba.md); no se sobrescribe. Elige otro nombre.");
+    expect(await readFile(join(raizTemporal, "docs", "notas", "prueba.md"), "utf8")).toBe("hola");
   });
 });

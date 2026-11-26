@@ -1,4 +1,5 @@
-// Servidor MCP "reservas-archivos" (SDK v2): lista, lee, cuenta líneas y busca texto en archivos del proyecto, solo lectura.
+// Servidor MCP "reservas-archivos" (SDK v2): lista, lee, cuenta líneas y busca texto en archivos del proyecto
+// (solo lectura), expone el resource adr://lista y, como única escritura, guardar_nota (solo crea en docs/notas/).
 //   npm run mcp:archivos            → stdio (lo arranca el cliente MCP)
 //   npm run mcp:archivos -- --http  → Streamable HTTP en http://127.0.0.1:8765/mcp
 // NUNCA escribir en stdout (console.log): en stdio es el canal del protocolo. Logs → stderr.
@@ -21,11 +22,16 @@ import {
   contarLineas,
   ErrorDeHerramienta,
   leerArchivo,
+  listarAdr,
   listarArchivos,
   MAX_COINCIDENCIAS,
 } from "./archivos";
+import { guardarNota } from "./notas";
 
 const RAIZ = process.env.FS_RAIZ ?? fileURLToPath(new URL("..", import.meta.url));
+
+/** Anotación de las herramientas que no cambian nada ni salen del proyecto. */
+const SOLO_LECTURA = { readOnlyHint: true, openWorldHint: false } as const;
 const HOST = "127.0.0.1";
 const PUERTO = 8765;
 
@@ -63,6 +69,7 @@ function crearServidor(): McpServer {
           .default(".")
           .describe("Carpeta relativa a la raíz del proyecto, por ejemplo '.', 'docs' o 'lib/reservas'."),
       }),
+      annotations: SOLO_LECTURA,
     },
     async ({ carpeta }) =>
       ejecutar(async () => {
@@ -81,6 +88,7 @@ function crearServidor(): McpServer {
       inputSchema: z.object({
         ruta: z.string().min(1).describe("Ruta del archivo relativa a la raíz del proyecto, por ejemplo 'AGENTS.md'."),
       }),
+      annotations: SOLO_LECTURA,
     },
     async ({ ruta }) => ejecutar(() => leerArchivo(RAIZ, ruta)),
   );
@@ -96,6 +104,7 @@ function crearServidor(): McpServer {
       inputSchema: z.object({
         ruta: z.string().min(1).describe("Ruta del archivo relativa a la raíz del proyecto, por ejemplo 'AGENTS.md'."),
       }),
+      annotations: SOLO_LECTURA,
     },
     async ({ ruta }) => ejecutar(async () => String(await contarLineas(RAIZ, ruta))),
   );
@@ -116,6 +125,7 @@ function crearServidor(): McpServer {
           .max(200)
           .describe("Texto exacto a buscar, por ejemplo 'registerTool' o 'create table'. Los caracteres como . * ( no son especiales."),
       }),
+      annotations: SOLO_LECTURA,
     },
     async ({ patron }) =>
       ejecutar(async () => {
@@ -126,6 +136,44 @@ function crearServidor(): McpServer {
           : "";
         return coincidencias.join("\n") + aviso;
       }),
+  );
+
+  servidor.registerTool(
+    "guardar_nota",
+    {
+      description:
+        "Guarda una nota NUEVA en Markdown en docs/notas/<nombre>.md del proyecto de reservas de canchas. " +
+        "Es la única herramienta que escribe: solo crea archivos nuevos en docs/notas/, nunca sobrescribe, " +
+        "modifica ni borra nada. Si ya existe una nota con ese nombre devuelve un error: elige otro nombre. " +
+        "Úsala para dejar por escrito resúmenes, hallazgos o decisiones pendientes.",
+      inputSchema: z.object({
+        nombre: z
+          .string()
+          .describe(
+            "Nombre de la nota, sin carpeta ni extensión: solo letras minúsculas, números y guiones, " +
+              "máximo 40 caracteres. Ejemplo: '2026-11-25-dudas-tarifas'. Se guarda como docs/notas/<nombre>.md.",
+          ),
+        texto: z.string().describe("Contenido de la nota en Markdown, máximo 5 000 caracteres."),
+      }),
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ nombre, texto }) =>
+      ejecutar(async () => `Nota guardada en ${await guardarNota(RAIZ, nombre, texto)}`),
+  );
+
+  servidor.registerResource(
+    "adr-lista",
+    "adr://lista",
+    {
+      title: "Lista de ADR",
+      description:
+        "Nombres de las decisiones de arquitectura (ADR) del proyecto, uno por línea, por ejemplo '0001-stack.md'. " +
+        "Cada una se lee con leer_archivo en docs/adr/<nombre>.",
+      mimeType: "text/plain",
+    },
+    async (uri) => ({
+      contents: [{ uri: uri.href, mimeType: "text/plain", text: (await listarAdr(RAIZ)).join("\n") }],
+    }),
   );
 
   return servidor;

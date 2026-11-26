@@ -12,8 +12,9 @@ export type ServidorMcp = {
 // ---------- probar-mcp ----------
 
 export const USO =
-  "Uso: npm run mcp:probar -- <servidor.ts | URL http> [herramienta] [clave=valor ...]\n" +
+  "Uso: npm run mcp:probar -- <servidor.ts | URL http> [herramienta [clave=valor ...] | uri://resource]\n" +
   "  Ej.: npm run mcp:probar -- mcp_servers/fs-server.ts leer_archivo ruta=AGENTS.md\n" +
+  "       npm run mcp:probar -- mcp_servers/fs-server.ts adr://lista\n" +
   "       npm run mcp:probar -- http://127.0.0.1:8765/mcp listar_archivos carpeta=docs";
 
 /** "3" → 3, "true" → true, '["a"]' → ["a"]; si no es JSON válido, el texto tal cual. */
@@ -26,12 +27,18 @@ export function valorDeTexto(texto: string): unknown {
 }
 
 export type ArgumentosPrueba =
-  | { ok: true; servidor: string; herramienta?: string; argumentos: Record<string, unknown> }
+  | { ok: true; servidor: string; herramienta?: string; recurso?: string; argumentos: Record<string, unknown> }
   | { ok: false; error: string };
 
 export function parsearArgumentos(argv: readonly string[]): ArgumentosPrueba {
   const [servidor, herramienta, ...pares] = argv;
   if (!servidor) return { ok: false, error: "Falta el servidor." };
+
+  // "adr://lista" es la URI de un resource, no el nombre de una herramienta.
+  if (herramienta?.includes("://")) {
+    if (pares.length > 0) return { ok: false, error: "Un resource no recibe argumentos clave=valor" };
+    return { ok: true, servidor, recurso: herramienta, argumentos: {} };
+  }
 
   const argumentos: Record<string, unknown> = {};
   for (const par of pares) {

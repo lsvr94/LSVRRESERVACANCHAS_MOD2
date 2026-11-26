@@ -1,5 +1,5 @@
 // Cliente MCP de prueba (SDK v2), sin agente. Sesiones 3, 4 y 5.
-//   npm run mcp:probar -- <servidor.ts | URL http> [herramienta] [clave=valor ...]
+//   npm run mcp:probar -- <servidor.ts | URL http> [herramienta [clave=valor ...] | uri://resource]
 // Es un cliente de terminal: aquí sí se usa stdout (console.log).
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -41,8 +41,15 @@ async function main() {
     await cliente.connect(transporte(entrada.servidor));
     const { tools } = await cliente.listTools();
     console.log(`Herramientas: [${tools.map((t) => t.name).join(", ")}]`);
+    if (cliente.getServerCapabilities()?.resources) {
+      const { resources } = await cliente.listResources();
+      console.log(`Recursos: [${resources.map((r) => r.uri).join(", ")}]`);
+    }
 
-    if (entrada.herramienta) {
+    if (entrada.recurso) {
+      const { contents } = await cliente.readResource({ uri: entrada.recurso });
+      console.log(contents.map((c) => ("text" in c ? c.text : `[contenido binario ${c.mimeType ?? ""}]`)).join("\n"));
+    } else if (entrada.herramienta) {
       const resultado = await cliente.callTool({ name: entrada.herramienta, arguments: entrada.argumentos });
       console.log(`¿Error?: ${resultado.isError === true}`);
       console.log(textoDe(resultado.content));

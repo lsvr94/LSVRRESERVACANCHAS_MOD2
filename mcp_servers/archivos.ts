@@ -1,5 +1,6 @@
 // Acceso al disco del servidor MCP de archivos. Solo lectura: no hay ninguna función que escriba.
-// Herramientas: listar_archivos, leer_archivo, contar_lineas y buscar_texto.
+// Herramientas: listar_archivos, leer_archivo, contar_lineas y buscar_texto; resource adr://lista.
+// La única escritura (guardar_nota) vive aparte, en notas.ts.
 import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { comprobarRuta, esProtegida, TAMANO_MAXIMO } from "./rutas";
@@ -43,6 +44,11 @@ export async function listarArchivos(raiz: string, carpeta: string): Promise<str
     .filter((e) => !esProtegida(path.posix.join(relativa, e.name)))
     .map((e) => (e.isDirectory() ? `${e.name}/` : e.name))
     .sort((a, b) => a.localeCompare(b, "en"));
+}
+
+/** Nombres de las ADR (archivos .md de docs/adr), ordenados. Lo usa el resource adr://lista. */
+export async function listarAdr(raiz: string): Promise<string[]> {
+  return (await listarArchivos(raiz, "docs/adr")).filter((n) => n.endsWith(".md"));
 }
 
 /** Contenido UTF-8 de un archivo de texto de hasta TAMANO_MAXIMO bytes. */

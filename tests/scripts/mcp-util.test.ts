@@ -47,6 +47,19 @@ describe("parsearArgumentos", () => {
     });
   });
 
+  it("un segundo argumento con '://' es un resource, no una herramienta", () => {
+    expect(parsearArgumentos(["mcp_servers/fs-server.ts", "adr://lista"])).toEqual({
+      ok: true,
+      servidor: "mcp_servers/fs-server.ts",
+      recurso: "adr://lista",
+      argumentos: {},
+    });
+    expect(parsearArgumentos(["s.ts", "adr://lista", "a=1"])).toEqual({
+      ok: false,
+      error: "Un resource no recibe argumentos clave=valor",
+    });
+  });
+
   it("errores de uso", () => {
     expect(parsearArgumentos([]).ok).toBe(false);
     const sinIgual = parsearArgumentos(["s.ts", "leer_archivo", "AGENTS.md"]);
