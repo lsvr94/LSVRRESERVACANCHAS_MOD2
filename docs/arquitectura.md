@@ -128,3 +128,26 @@ erDiagram
 ```
 
 El diagrama no muestra: el índice único parcial `(fecha, cancha_id, hora_inicio)` para reservas no canceladas (regla anti-choque), los triggers que fijan el precio desde `tarifas` y que validan los cambios de estado y que RLS está activo en las 4 tablas. Detalle en `supabase/migrations/`.
+
+### Índices y rendimiento (EXPLAIN, ejercicio 2.5)
+
+Índices de `reservas`:
+- `reservas_pkey (id)`;
+- `reservas_bloque_ocupado_unico (fecha, cancha_id, hora_inicio) WHERE estado <> 'cancelada'`, que es la regla anti-choque;
+- `reservas_cliente_id_idx (cliente_id)`.
+
+Medición en la base local con **101.400 reservas de prueba y 2.000 clientes** (unas 50 reservas por cliente), con `EXPLAIN (ANALYZE, BUFFERS)` y el SQL equivalente al de la app. Con solo las 4 reservas del seed, Postgres prefiere recorrer la tabla aunque exista el índice, así que la medición no sería realista. Los datos de prueba se borraron después.
+
+| Consulta | Antes del índice en `cliente_id` | Después |
+|---|---|---|
+| **(a) Disponibilidad**: reservas no canceladas de una cancha y fecha (`horasOcupadas`) | **Index Only Scan** en `reservas_bloque_ocupado_unico`: 13 filas, 6 páginas, 0,04 ms | Igual (el índice nuevo no la afecta) |
+| **(b) Mis reservas**: reservas de un cliente (`listarReservasDeCliente`) | **Seq Scan**: recorre 101.404 filas para devolver 50, 1.061 páginas, 4,29 ms | **Bitmap Index Scan** en `reservas_cliente_id_idx`: 50 filas, 61 páginas, 0,11 ms (unas 39 veces más rápido) |
+
+**(a) ya estaba bien cubierta.** El índice anti-choque empieza por `fecha` y `cancha_id`, y su condición `WHERE estado <> 'cancelada'` coincide con la de la consulta. Además incluye `hora_inicio`, así que Postgres responde sin leer la tabla (Index Only Scan, `Heap Fetches: 0`).
+
+**Decisión sobre `cliente_id`**
+- **Paso 2 (modelo de datos inicial):** no se indexó, porque ninguna historia de usuario buscaba reservas por cliente.
+- **Ejercicio 2.5:** se cambia esa decisión. "Mis reservas" (`GET /api/clientes/[id]/reservas`, ejercicio 2.4) filtra por cliente, y el EXPLAIN mostró que sin índice el costo crece con el total de reservas del sistema, no con las del cliente.
+- El índice está en la migración `*_indice_reservas_cliente.sql`. Es simple, no compuesto con fecha y hora: cada cliente tiene decenas de reservas y ordenarlas en memoria cuesta 28 kB. También acelera la verificación de la FK al borrar un cliente.
+- En una base grande en producción se crearía con `create index concurrently`, que no bloquea escrituras pero no puede ir dentro de la transacción de una migración. Para el MVP basta el índice normal.
+

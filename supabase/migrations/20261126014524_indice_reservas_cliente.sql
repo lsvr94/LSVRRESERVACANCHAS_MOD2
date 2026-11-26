@@ -1,0 +1,11 @@
+-- Índice para "Mis reservas" (GET /api/clientes/[id]/reservas, ejercicio 2.4).
+-- En el Paso 2 se decidió no indexar cliente_id porque ninguna historia buscaba por cliente.
+-- El EXPLAIN del ejercicio 2.5 (unas 100.000 reservas) mostró un Seq Scan que recorría la tabla
+-- entera para devolver unas 50 filas; con este índice pasa a un Bitmap Index Scan.
+-- También acelera la verificación de la FK al borrar un cliente.
+--
+-- Índice simple (no compuesto con fecha y hora): cada cliente tiene decenas de reservas
+-- y ordenarlas en memoria es trivial.
+-- En una base grande en producción convendría "create index concurrently" (no bloquea escrituras),
+-- pero no puede ir dentro de la transacción de una migración; para el MVP basta este.
+create index reservas_cliente_id_idx on public.reservas (cliente_id);
