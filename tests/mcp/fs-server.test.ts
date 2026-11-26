@@ -1,5 +1,6 @@
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -27,10 +28,10 @@ afterAll(async () => {
 });
 
 describe("servidor MCP reservas-archivos (stdio)", () => {
-  it("se presenta con su nombre y expone las 2 herramientas con descripción", async () => {
+  it("se presenta con su nombre y expone las 4 herramientas con descripción", async () => {
     expect(cliente.getServerVersion()?.name).toBe("reservas-archivos");
     const { tools } = await cliente.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["leer_archivo", "listar_archivos"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["buscar_texto", "contar_lineas", "leer_archivo", "listar_archivos"]);
     for (const t of tools) expect(t.description?.length).toBeGreaterThan(20);
   });
 
@@ -65,5 +66,35 @@ describe("servidor MCP reservas-archivos (stdio)", () => {
     expect(r.isError).toBe(true);
     expect(texto(r)).toBe("Acceso denegado: '../../../etc/passwd' está fuera del proyecto");
     expect(texto(r)).not.toContain(RAIZ_REPO);
+  });
+
+  it("contar_lineas cuenta las líneas de AGENTS.md", async () => {
+    const contenido = await readFile(join(RAIZ_REPO, "AGENTS.md"), "utf8");
+    const esperado = contenido.split("\n").length - (contenido.endsWith("\n") ? 1 : 0);
+    const r = await cliente.callTool({ name: "contar_lineas", arguments: { ruta: "AGENTS.md" } });
+    expect(r.isError).toBeFalsy();
+    expect(texto(r)).toBe(String(esperado));
+  });
+
+  it("contar_lineas('.env.local') llega como error de herramienta", async () => {
+    const r = await cliente.callTool({ name: "contar_lineas", arguments: { ruta: ".env.local" } });
+    expect(r.isError).toBe(true);
+    expect(texto(r)).toBe("Acceso denegado: '.env.local' es una carpeta o archivo protegido");
+  });
+
+  it("buscar_texto encuentra el título de AGENTS.md y no entra a carpetas protegidas", async () => {
+    const r = await cliente.callTool({ name: "buscar_texto", arguments: { patron: "# Reservas de canchas" } });
+    expect(r.isError).toBeFalsy();
+    const lineas = texto(r).split("\n");
+    expect(lineas).toContain("AGENTS.md:1: # Reservas de canchas");
+    for (const l of lineas) expect(l).not.toMatch(/^(node_modules|\.git|\.next|\.env)/);
+  });
+
+  it("buscar_texto sin coincidencias lo dice claramente", async () => {
+    // Se arma en tiempo de ejecución para que este mismo archivo .ts no coincida.
+    const patron = ["zzz", "no", "existe", Date.now()].join("-");
+    const r = await cliente.callTool({ name: "buscar_texto", arguments: { patron } });
+    expect(r.isError).toBeFalsy();
+    expect(texto(r)).toBe(`Sin coincidencias para '${patron}'`);
   });
 });

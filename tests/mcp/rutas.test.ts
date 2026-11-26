@@ -1,3 +1,4 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   comprobarRuta,
@@ -77,5 +78,30 @@ describe("comprobarRuta", () => {
       error: mensajeProtegida(".env.local"),
     });
     expect(comprobarRuta(RAIZ, "/repo/supabase/.temp/x", "supabase/.temp/x").ok).toBe(false);
+  });
+});
+
+// Casos de la clase (sesión 3), resolviendo la ruta pedida como lo hace el servidor.
+describe("casos de la clase", () => {
+  const comprobar = (r: string) => comprobarRuta(RAIZ, path.posix.resolve(RAIZ, r), r);
+
+  it.each(["../x", "docs/../../x", "/etc/passwd", "../repo2/x"])("'%s' está fuera del proyecto", (r) => {
+    expect(comprobar(r)).toEqual({ ok: false, error: mensajeFuera(r) });
+  });
+
+  it.each([".env", ".env.local", ".git/config", "docs/../.env.local", "supabase/.temp/cli-latest"])(
+    "'%s' es protegida",
+    (r) => {
+      expect(comprobar(r)).toEqual({ ok: false, error: mensajeProtegida(r) });
+    },
+  );
+
+  it.each([
+    ["AGENTS.md", "AGENTS.md"],
+    ["docs/adr/0001-stack.md", "docs/adr/0001-stack.md"],
+    ["docs/../AGENTS.md", "AGENTS.md"],
+    ["./supabase/migrations", "supabase/migrations"],
+  ])("'%s' se permite", (r, relativa) => {
+    expect(comprobar(r)).toEqual({ ok: true, relativa });
   });
 });

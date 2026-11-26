@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { leerArchivo, listarArchivos } from "../../mcp_servers/archivos";
+import { contarLineas, contarLineasDeTexto, leerArchivo, listarArchivos } from "../../mcp_servers/archivos";
 import { mensajeFuera, mensajeProtegida } from "../../mcp_servers/rutas";
 
 // Un "proyecto" falso en una carpeta temporal, con un secreto fuera de él.
@@ -97,5 +97,41 @@ describe("leerArchivo", () => {
   it("los mensajes no revelan rutas absolutas", async () => {
     const error = await leerArchivo(raiz, "nada.md").catch((e: Error) => e);
     expect((error as Error).message).not.toContain(base);
+  });
+
+  it("casos de la clase en disco: docs/../../x y .git/config", async () => {
+    await expect(leerArchivo(raiz, "docs/../../fuera.txt")).rejects.toThrow(mensajeFuera("docs/../../fuera.txt"));
+    await expect(leerArchivo(raiz, ".git/config")).rejects.toThrow(mensajeProtegida(".git/config"));
+  });
+});
+
+describe("contarLineasDeTexto", () => {
+  it.each([
+    ["", 0],
+    ["a", 1],
+    ["a\n", 1],
+    ["a\nb", 2],
+    ["a\n\n", 2],
+    ["a\r\nb\r\n", 2],
+  ])("%j tiene %i líneas", (texto, lineas) => {
+    expect(contarLineasDeTexto(texto)).toBe(lineas);
+  });
+});
+
+describe("contarLineas", () => {
+  it("cuenta las líneas de un archivo del proyecto", async () => {
+    expect(await contarLineas(raiz, "AGENTS.md")).toBe(2);
+    expect(await contarLineas(raiz, "justo.txt")).toBe(1);
+  });
+
+  it("pasa por las mismas validaciones de ruta y tamaño que leerArchivo", async () => {
+    await expect(contarLineas(raiz, "grande.txt")).rejects.toThrow("'grande.txt' pesa 100001 bytes; el máximo es 100 000");
+    await expect(contarLineas(raiz, ".env.local")).rejects.toThrow(mensajeProtegida(".env.local"));
+    await expect(contarLineas(raiz, "../fuera.txt")).rejects.toThrow(mensajeFuera("../fuera.txt"));
+    await expect(contarLineas(raiz, "atajo-fuera.txt")).rejects.toThrow(mensajeFuera("atajo-fuera.txt"));
+    await expect(contarLineas(raiz, "config.txt")).rejects.toThrow(mensajeProtegida("config.txt"));
+    await expect(contarLineas(raiz, "docs")).rejects.toThrow("'docs' es una carpeta");
+    await expect(contarLineas(raiz, "imagen.bin")).rejects.toThrow("'imagen.bin' no es un archivo de texto");
+    await expect(contarLineas(raiz, "nada.md")).rejects.toThrow("No existe 'nada.md'");
   });
 });
