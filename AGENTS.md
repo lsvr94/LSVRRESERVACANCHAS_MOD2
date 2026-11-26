@@ -51,6 +51,7 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 - Antes de terminar una tarea, corre `npm test` y `npm run lint`.
 - Antes de cada commit corre husky (ESLint). Si falla, corrige; nunca uses `--no-verify`.
 - Zona horaria del negocio: America/Lima. "Hoy" se calcula en la app con esa zona, nunca con now() de la base (que está en UTC).
+- MCP: usa el SDK **v2** (`@modelcontextprotocol/server` y `@modelcontextprotocol/client`, versión fijada; imports `@modelcontextprotocol/server`, `…/server/stdio`, `…/client/stdio` y `registerTool`). Nunca `@modelcontextprotocol/sdk`: es la v1 de los tutoriales antiguos (docs: https://ts.sdk.modelcontextprotocol.io/v2/).
 
 ## No tocar
 - Nunca leer ni mostrar `.env.local` ni keys de Supabase.
