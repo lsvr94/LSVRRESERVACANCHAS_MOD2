@@ -1,5 +1,6 @@
 import "server-only";
 import { MONEDA } from "@/lib/canchas/tarifas";
+import { enmascararTelefono } from "@/lib/reservas/clientes";
 import type { EstadoReserva } from "@/lib/reservas/estados";
 import type { ErrorDeBase } from "@/lib/reservas/errores-db";
 import type { CrearReserva } from "@/lib/reservas/esquemas";
@@ -69,27 +70,18 @@ export async function insertarReserva(
   };
 }
 
-type FilaDetalle = Omit<FilaReserva, "cliente_id" | "cancha_id"> & {
-  cancha: { id: number; nombre: string };
-  cliente: { id: number; nombre: string };
-};
+/** Columnas comunes de una reserva con su cancha (para detalle y listas). */
+const COLUMNAS_RESERVA_CON_CANCHA = "id, fecha, hora_inicio, estado, precio, creada_en, cancha:canchas(id, nombre)";
 
-/** La reserva con su cancha y cliente, o null si no existe. */
-export async function obtenerReserva(id: number): Promise<ReservaDetalle | null> {
-  const { data, error } = await obtenerSupabase()
-    .from("reservas")
-    .select(
-      "id, fecha, hora_inicio, estado, precio, creada_en, cancha:canchas(id, nombre), cliente:clientes(id, nombre)",
-    )
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  const f = data as unknown as FilaDetalle;
+type FilaConCancha = Omit<FilaReserva, "cliente_id" | "cancha_id"> & { cancha: { id: number; nombre: string } };
+
+/** Reserva de una lista (GET /api/clientes/[id]/reservas): con cancha, sin datos del cliente. */
+export type ReservaDeCliente = Omit<ReservaDetalle, "cliente">;
+
+function aReservaConCancha(f: FilaConCancha): ReservaDeCliente {
   return {
     id: f.id,
     cancha: f.cancha,
-    cliente: f.cliente,
     fecha: f.fecha,
     hora_inicio: f.hora_inicio,
     hora_fin: f.hora_inicio + 1,
@@ -98,6 +90,47 @@ export async function obtenerReserva(id: number): Promise<ReservaDetalle | null>
     moneda: MONEDA,
     creada_en: f.creada_en,
   };
+}
+
+/** La reserva con su cancha y cliente, o null si no existe. */
+export async function obtenerReserva(id: number): Promise<ReservaDetalle | null> {
+  const { data, error } = await obtenerSupabase()
+    .from("reservas")
+    .select(`${COLUMNAS_RESERVA_CON_CANCHA}, cliente:clientes(id, nombre)`)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const f = data as unknown as FilaConCancha & { cliente: { id: number; nombre: string } };
+  const { id: reservaId, cancha, ...resto } = aReservaConCancha(f);
+  return { id: reservaId, cancha, cliente: f.cliente, ...resto };
+}
+
+/** Cliente con el teléfono enmascarado (riesgo 2): el número completo no sale de este módulo. */
+export type ClientePublico = { id: number; nombre: string; telefono: string };
+
+export async function obtenerCliente(id: number): Promise<ClientePublico | null> {
+  const { data, error } = await obtenerSupabase()
+    .from("clientes")
+    .select("id, nombre, telefono")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return { id: data.id, nombre: data.nombre, telefono: enmascararTelefono(data.telefono) };
+}
+
+/** Reservas de un cliente (incluidas las canceladas), de la más reciente a la más antigua. */
+export async function listarReservasDeCliente(clienteId: number): Promise<ReservaDeCliente[]> {
+  const { data, error } = await obtenerSupabase()
+    .from("reservas")
+    .select(COLUMNAS_RESERVA_CON_CANCHA)
+    .eq("cliente_id", clienteId)
+    .order("fecha", { ascending: false })
+    .order("hora_inicio", { ascending: false })
+    .order("id", { ascending: false });
+  if (error) throw error;
+  return (data as unknown as FilaConCancha[]).map(aReservaConCancha);
 }
 
 /** Estado actual de una reserva, o null si no existe. */

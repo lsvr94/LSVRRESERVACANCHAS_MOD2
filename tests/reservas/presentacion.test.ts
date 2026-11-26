@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   MENSAJE_ERROR_CONEXION,
   MENSAJE_OCUPADO,
+  etiquetaEstado,
   formatearBloque,
   formatearFecha,
   formatearPrecio,
+  interpretarRespuestaMisReservas,
   interpretarRespuestaReserva,
 } from "../../lib/reservas/presentacion";
 
@@ -91,5 +93,59 @@ describe("interpretarRespuestaReserva", () => {
   it("un cuerpo inesperado no rompe: se trata como error", () => {
     expect(interpretarRespuestaReserva(201, null, "Cancha 1").tipo).toBe("error");
     expect(interpretarRespuestaReserva(422, "texto", "Cancha 1").tipo).toBe("error");
+  });
+});
+
+describe("etiquetaEstado", () => {
+  it("pone en mayúscula inicial cada estado", () => {
+    expect(etiquetaEstado("pendiente")).toBe("Pendiente");
+    expect(etiquetaEstado("confirmada")).toBe("Confirmada");
+    expect(etiquetaEstado("cancelada")).toBe("Cancelada");
+  });
+});
+
+describe("interpretarRespuestaMisReservas", () => {
+  const reserva = {
+    id: 7,
+    fecha: "2099-12-28",
+    hora_inicio: 18,
+    hora_fin: 19,
+    cancha: { id: 1, nombre: "Cancha 1" },
+    precio: 120,
+    moneda: "PEN",
+    estado: "confirmada",
+    creada_en: "2026-11-25T10:00:00Z",
+  };
+
+  it("200 → ok con cliente y reservas", () => {
+    const cuerpo = { cliente: { id: 1, nombre: "Ana Torres" }, reservas: [reserva] };
+    expect(interpretarRespuestaMisReservas(200, cuerpo)).toEqual({ tipo: "ok", ...cuerpo });
+  });
+
+  it("200 con lista vacía → ok sin reservas", () => {
+    const r = interpretarRespuestaMisReservas(200, { cliente: { id: 2, nombre: "Bruno" }, reservas: [] });
+    expect(r).toMatchObject({ tipo: "ok", reservas: [] });
+  });
+
+  it("404 → no_encontrado", () => {
+    expect(
+      interpretarRespuestaMisReservas(404, { error: { codigo: "CLIENTE_NO_ENCONTRADO", mensaje: "x" } }),
+    ).toEqual({ tipo: "no_encontrado", mensaje: "No existe un cliente con ese ID." });
+  });
+
+  it("422 → invalido con mensaje por campo", () => {
+    const r = interpretarRespuestaMisReservas(422, {
+      error: { codigo: "DATOS_INVALIDOS", mensaje: "Revisa los datos enviados.", campos: { id: "Debe ser un número entero mayor que 0." } },
+    });
+    expect(r).toEqual({
+      tipo: "invalido",
+      mensaje: "Revisa los datos enviados.",
+      campos: [{ etiqueta: "ID de cliente", mensaje: "Debe ser un número entero mayor que 0." }],
+    });
+  });
+
+  it("500 o un cuerpo inesperado → error de conexión", () => {
+    expect(interpretarRespuestaMisReservas(500, null)).toEqual({ tipo: "error", mensaje: MENSAJE_ERROR_CONEXION });
+    expect(interpretarRespuestaMisReservas(200, { reservas: "x" }).tipo).toBe("error");
   });
 });

@@ -80,3 +80,59 @@ export function interpretarRespuestaReserva(
   }
   return { tipo: "error", mensaje: MENSAJE_ERROR_CONEXION };
 }
+
+const NOMBRES_ESTADO: Record<string, string> = {
+  pendiente: "Pendiente",
+  confirmada: "Confirmada",
+  cancelada: "Cancelada",
+};
+
+export function etiquetaEstado(estado: string): string {
+  return NOMBRES_ESTADO[estado] ?? estado;
+}
+
+/** Una reserva tal como la devuelve GET /api/clientes/[id]/reservas. */
+export type ReservaDeCliente = {
+  id: number;
+  fecha: string;
+  hora_inicio: number;
+  hora_fin: number;
+  cancha: { id: number; nombre: string };
+  precio: number;
+  moneda: string;
+  estado: string;
+  creada_en: string;
+};
+
+export type ResultadoMisReservas =
+  | { tipo: "ok"; cliente: { id: number; nombre: string }; reservas: ReservaDeCliente[] }
+  | { tipo: "no_encontrado"; mensaje: string }
+  | { tipo: "invalido"; mensaje: string; campos: { etiqueta: string; mensaje: string }[] }
+  | { tipo: "error"; mensaje: string };
+
+function esCuerpoMisReservas(x: unknown): x is { cliente: { id: number; nombre: string }; reservas: ReservaDeCliente[] } {
+  return (
+    esObjeto(x) &&
+    esObjeto(x.cliente) &&
+    typeof x.cliente.id === "number" &&
+    typeof x.cliente.nombre === "string" &&
+    Array.isArray(x.reservas)
+  );
+}
+
+/** Traduce la respuesta de GET /api/clientes/[id]/reservas a lo que muestra "Mis reservas". */
+export function interpretarRespuestaMisReservas(status: number, cuerpo: unknown): ResultadoMisReservas {
+  if (status === 200 && esCuerpoMisReservas(cuerpo)) {
+    return { tipo: "ok", cliente: cuerpo.cliente, reservas: cuerpo.reservas };
+  }
+  if (status === 404) return { tipo: "no_encontrado", mensaje: "No existe un cliente con ese ID." };
+  if (status === 422 && esCuerpoError(cuerpo)) {
+    const campos = Object.entries(cuerpo.error.campos ?? {}).map(([campo, mensaje]) => ({
+      // En esta consulta, el [id] de la URL es el ID de cliente.
+      etiqueta: campo === "id" ? "ID de cliente" : (ETIQUETAS[campo] ?? campo),
+      mensaje,
+    }));
+    return { tipo: "invalido", mensaje: cuerpo.error.mensaje, campos };
+  }
+  return { tipo: "error", mensaje: MENSAJE_ERROR_CONEXION };
+}

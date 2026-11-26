@@ -10,6 +10,7 @@ import {
   interpretarRespuestaReserva,
   type ResultadoReserva,
 } from "@/lib/reservas/presentacion";
+import { MisReservas, type ReservaCreada } from "./mis-reservas";
 
 // Tipos de las respuestas de la API (declarados aquí: la pantalla no importa de servidor/).
 type Cancha = { id: number; nombre: string };
@@ -118,6 +119,8 @@ export function PantallaReservas() {
   // --- Reservar (POST /api/reservas) ---
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoReserva | null>(null);
+  // Avisa a "Mis reservas" para que recargue si muestra a este cliente.
+  const [reservaCreada, setReservaCreada] = useState<ReservaCreada>(null);
   const puedeReservar = hora !== null && clienteId.trim() !== "" && !enviando;
 
   function cambiarSeleccion() {
@@ -141,6 +144,9 @@ export function PantallaReservas() {
       if (r.tipo === "exito" || r.tipo === "ocupado") {
         setHoraElegida(null);
         setVersion((v) => v + 1); // refresca los bloques libres
+      }
+      if (r.tipo === "exito") {
+        setReservaCreada((prev) => ({ clienteId: Number(clienteId), n: (prev?.n ?? 0) + 1 }));
       }
     } catch {
       setResultado({ tipo: "error", mensaje: MENSAJE_ERROR_CONEXION });
@@ -285,6 +291,8 @@ export function PantallaReservas() {
           {resultado && <Resultado resultado={resultado} />}
         </form>
       )}
+
+      <MisReservas reservaCreada={reservaCreada} />
     </main>
   );
 }

@@ -46,7 +46,7 @@ Monolito modular con dos contextos: `canchas` (canchas y tarifas) y `reservas` (
 flowchart TB
     subgraph app["App Next.js"]
         subgraph ctx_reservas["Contexto reservas"]
-            rutas_reservas["app/api/(reservas)/<br/>(disponibilidad, reservas)"]
+            rutas_reservas["app/api/(reservas)/<br/>(disponibilidad, reservas, clientes)"]
             esquemas["lib/reservas/<br/>(esquemas Zod y reglas puras)"]
             datos_reservas["servidor/reservas/consultas.ts"]
         end
@@ -79,7 +79,7 @@ Riesgos conocidos que se aceptan mientras el sistema sea un MVP que corre en loc
 | Riesgo | Por qué se acepta en el MVP | Cuándo resolverlo |
 |---|---|---|
 | **Cualquiera puede crear reservas para cualquier `cliente_id`**, sin login ni límite de peticiones. También puede **cancelar o confirmar reservas ajenas** con `PATCH /api/reservas/[id]/estado`, probando ids consecutivos. La API usa la clave secreta de Supabase, que omite RLS. | No hay login por decisión (ADR-0001) y el sistema no está publicado. | **Antes de publicar en internet:** límite de peticiones por IP, verificar al cliente (login o código por SMS) y exigir `Content-Type: application/json` en el POST y el PATCH. El PATCH debe comprobar que quien cambia el estado es el dueño de la reserva o un cajero/administrador. |
-| **Exposición de datos personales:** `GET /api/reservas/[id]` usa ids consecutivos y muestra el nombre del cliente; `CLIENTE_NO_EXISTE` revela qué ids de cliente existen. | Solo hay clientes de prueba del seed. | **Antes de cargar datos reales de clientes:** quitar el nombre de la respuesta o usar un identificador público aleatorio (uuid). |
+| **Exposición de datos personales:** `GET /api/reservas/[id]` usa ids consecutivos y muestra el nombre del cliente; `CLIENTE_NO_EXISTE` revela qué ids de cliente existen. Además, `GET /api/clientes/[id]` muestra el nombre (el teléfono va enmascarado, solo los 3 últimos dígitos) y `GET /api/clientes/[id]/reservas` expone el **historial completo de reservas** de cualquier cliente probando ids consecutivos. | Solo hay clientes de prueba del seed. | **Antes de cargar datos reales de clientes:** quitar el nombre de la respuesta o usar un identificador público aleatorio (uuid), y que solo el propio cliente o un cajero/administrador pueda ver un cliente y su historial. |
 
 ### Riesgos resueltos
 

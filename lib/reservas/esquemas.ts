@@ -54,8 +54,10 @@ export function esquemaCrearReserva(ahora: AhoraLocal) {
 
 export type CrearReserva = z.infer<ReturnType<typeof esquemaCrearReserva>>;
 
-/** Parámetros de la URL de GET /api/reservas/[id]. */
-export const esquemaIdReserva = z.object({ id: idDesdeTexto });
+/** Parámetro [id] de una URL (/api/reservas/[id], /api/clientes/[id], ...). */
+export const esquemaIdEnUrl = z.object({ id: idDesdeTexto });
+export const esquemaIdReserva = esquemaIdEnUrl;
+export const esquemaIdCliente = esquemaIdEnUrl;
 
 /** Cuerpo de PATCH /api/reservas/[id]/estado. */
 export const esquemaCambioEstado = z.strictObject({
