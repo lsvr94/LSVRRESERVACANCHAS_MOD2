@@ -27,6 +27,8 @@ Se reserva por bloques de 1 hora, de 10:00 a 23:00 (la última reserva empieza a
 - Pruebas de integración (necesita Docker y `npx supabase start`): `npm run test:integracion`
 - Estilo: `npm run lint`
 - Servidor MCP de archivos: `npm run mcp:archivos` (stdio) o `npm run mcp:archivos -- --http` (http://127.0.0.1:8765/mcp)
+- Probar un servidor MCP sin agente: `npm run mcp:probar -- <servidor.ts|URL http> [herramienta] [clave=valor ...]` (ej.: `npm run mcp:probar -- mcp_servers/fs-server.ts leer_archivo ruta=AGENTS.md`)
+- Configurar MCP en los agentes: `npm run mcp:configurar` (genera `.mcp.json`, `.codex/config.toml` y `.agents/mcp_config.json` con rutas absolutas de esta máquina; están en `.gitignore`, no se suben)
 - Desarrollo: `npm run dev`
 
 ## Arquitectura

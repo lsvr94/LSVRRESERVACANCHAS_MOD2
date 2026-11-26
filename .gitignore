@@ -43,3 +43,6 @@ next-env.d.ts
 .mcp.json
 .gemini/
 .codex/
+
+# configuración MCP de Antigravity (rutas de esta máquina; la genera npm run mcp:configurar)
+.agents/mcp_config.json
