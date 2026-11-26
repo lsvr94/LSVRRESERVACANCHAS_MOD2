@@ -43,6 +43,29 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // Servidores MCP (AGENTS.md): no necesitan la base ni la clave secreta, y en stdio
+  // stdout es el canal del protocolo, así que nada de console.log (logs a stderr).
+  {
+    files: ["mcp_servers/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "(^|/)servidor(/|$)",
+              message: "Los servidores MCP no importan de servidor/: no necesitan la base ni la clave secreta (AGENTS.md).",
+            },
+            {
+              regex: "^@supabase/",
+              message: "Los servidores MCP no hablan con Supabase (AGENTS.md).",
+            },
+          ],
+        },
+      ],
+      "no-console": ["error", { allow: ["error", "warn"] }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

@@ -9,10 +9,12 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:integracion": "vitest run --config vitest.integracion.config.mts",
+    "mcp:archivos": "tsx mcp_servers/fs-server.ts",
     "prepare": "husky"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",
+    "@modelcontextprotocol/node": "2.1.2",
     "@modelcontextprotocol/server": "2.4.0",
     "@supabase/supabase-js": "^2.119.2",
     "next": "16.4.6",
@@ -32,6 +34,7 @@
     "lint-staged": "^17.6.2",
     "supabase": "^3.2.0",
     "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
     "typescript": "^5",
     "vitest": "^5.1.1"
   },
