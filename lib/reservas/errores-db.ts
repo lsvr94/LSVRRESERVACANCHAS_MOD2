@@ -7,6 +7,9 @@ export type ErrorDeBase = { code?: string; message?: string };
 const VIOLACION_UNICA = "23505";
 const VIOLACION_FK = "23503";
 const VIOLACION_CHECK = "23514";
+// SQLSTATE propio del trigger reservas_transicion_estado
+// (supabase/migrations/*_transiciones_de_estado.sql). No cambiar por separado.
+const TRANSICION_NO_PERMITIDA = "RS001";
 
 /** Supabase no da el nombre de la restricción aparte; viene entre comillas en el mensaje. */
 function nombreDeRestriccion(mensaje = ""): string | null {
@@ -26,6 +29,13 @@ export function traducirErrorDeBase(error: ErrorDeBase): ErrorApi {
       status: 409,
       codigo: "BLOQUE_OCUPADO",
       mensaje: "Ese bloque acaba de ser reservado, elige otro.",
+    };
+  }
+  if (error.code === TRANSICION_NO_PERMITIDA) {
+    return {
+      status: 409,
+      codigo: "TRANSICION_NO_PERMITIDA",
+      mensaje: "Ese cambio de estado no está permitido.",
     };
   }
   if (error.code === VIOLACION_FK && restriccion === "reservas_cliente_id_fkey") {

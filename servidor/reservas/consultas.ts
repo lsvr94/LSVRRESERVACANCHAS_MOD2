@@ -99,3 +99,30 @@ export async function obtenerReserva(id: number): Promise<ReservaDetalle | null>
     creada_en: f.creada_en,
   };
 }
+
+/** Estado actual de una reserva, o null si no existe. */
+export async function obtenerEstado(id: number): Promise<EstadoReserva | null> {
+  const { data, error } = await obtenerSupabase().from("reservas").select("estado").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? (data.estado as EstadoReserva) : null;
+}
+
+/**
+ * Cambia el estado solo si sigue siendo `de` (UPDATE condicional): si otra petición lo
+ * cambió entre la lectura y este UPDATE, no se actualiza ninguna fila. El trigger
+ * reservas_transicion_estado es la última barrera.
+ */
+export async function actualizarEstado(
+  id: number,
+  de: EstadoReserva,
+  a: EstadoReserva,
+): Promise<{ actualizada: boolean } | { error: ErrorDeBase }> {
+  const { data, error } = await obtenerSupabase()
+    .from("reservas")
+    .update({ estado: a })
+    .eq("id", id)
+    .eq("estado", de)
+    .select("id");
+  if (error) return { error };
+  return { actualizada: data.length === 1 };
+}

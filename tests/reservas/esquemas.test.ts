@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  esquemaCambioEstado,
   esquemaCrearReserva,
   esquemaDisponibilidad,
   esquemaIdReserva,
@@ -98,5 +99,24 @@ describe("esquemaIdReserva", () => {
     for (const id of ["abc", "1.5", "0", "-3"]) {
       expect(camposConError(esquemaIdReserva.safeParse({ id }))).toEqual(["id"]);
     }
+  });
+});
+
+describe("esquemaCambioEstado", () => {
+  it("acepta los tres estados", () => {
+    for (const estado of ["pendiente", "confirmada", "cancelada"]) {
+      expect(esquemaCambioEstado.safeParse({ estado }).data).toEqual({ estado });
+    }
+  });
+
+  it("rechaza estados inválidos, ausentes o no textuales (error en estado)", () => {
+    for (const cuerpo of [{ estado: "pagada" }, {}, { estado: 1 }]) {
+      expect(camposConError(esquemaCambioEstado.safeParse(cuerpo))).toEqual(["estado"]);
+    }
+  });
+
+  it("rechaza campos extra", () => {
+    const r = esquemaCambioEstado.safeParse({ estado: "confirmada", precio: 0 });
+    expect(r.error?.issues[0].code).toBe("unrecognized_keys");
   });
 });

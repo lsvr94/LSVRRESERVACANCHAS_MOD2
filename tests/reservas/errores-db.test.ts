@@ -80,3 +80,11 @@ describe("cuerpoDeError", () => {
     });
   });
 });
+
+describe("traducirErrorDeBase: trigger de transiciones", () => {
+  it("SQLSTATE RS001 (trigger reservas_transicion_estado) → 409 TRANSICION_NO_PERMITIDA", () => {
+    const e = traducirErrorDeBase({ code: "RS001", message: "Transición no permitida: cancelada → pendiente" });
+    expect(e).toMatchObject({ status: 409, codigo: "TRANSICION_NO_PERMITIDA" });
+    expect(e.mensaje).not.toMatch(/→/); // no se expone el mensaje de la base
+  });
+});

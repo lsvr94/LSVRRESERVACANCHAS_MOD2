@@ -16,3 +16,19 @@ export function responderInesperado(error: unknown): Response {
     mensaje: "Ocurrió un error inesperado. Intenta de nuevo.",
   });
 }
+
+/** Lee el cuerpo JSON; si no es JSON válido, devuelve el 422 del formato único. */
+export async function leerJson(request: Request): Promise<{ cuerpo: unknown } | { error: ErrorApi }> {
+  try {
+    return { cuerpo: await request.json() };
+  } catch {
+    return {
+      error: {
+        status: 422,
+        codigo: "DATOS_INVALIDOS",
+        mensaje: "Revisa los datos enviados.",
+        campos: { cuerpo: "El cuerpo debe ser un JSON válido." },
+      },
+    };
+  }
+}

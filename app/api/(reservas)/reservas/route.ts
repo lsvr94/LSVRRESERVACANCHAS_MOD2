@@ -4,24 +4,15 @@ import { traducirErrorDeBase } from "@/lib/reservas/errores-db";
 import { esquemaCrearReserva } from "@/lib/reservas/esquemas";
 import { ahoraEnLima } from "@/lib/reservas/fechas";
 import { obtenerCanchaConTarifas } from "@/servidor/canchas/consultas";
-import { responderError, responderInesperado } from "@/servidor/http";
+import { leerJson, responderError, responderInesperado } from "@/servidor/http";
 import { insertarReserva } from "@/servidor/reservas/consultas";
 
 /** POST /api/reservas: crea una reserva pendiente con el precio de la tarifa vigente. */
 export async function POST(request: Request) {
-  let cuerpo: unknown;
-  try {
-    cuerpo = await request.json();
-  } catch {
-    return responderError({
-      status: 422,
-      codigo: "DATOS_INVALIDOS",
-      mensaje: "Revisa los datos enviados.",
-      campos: { cuerpo: "El cuerpo debe ser un JSON válido." },
-    });
-  }
+  const json = await leerJson(request);
+  if ("error" in json) return responderError(json.error);
 
-  const entrada = esquemaCrearReserva(ahoraEnLima(new Date())).safeParse(cuerpo);
+  const entrada = esquemaCrearReserva(ahoraEnLima(new Date())).safeParse(json.cuerpo);
   if (!entrada.success) return responderError(errorDeValidacion(entrada.error));
   const datos = entrada.data;
 

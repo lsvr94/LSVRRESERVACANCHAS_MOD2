@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { HORA_APERTURA, HORA_CIERRE } from "./bloques";
+import { ESTADOS_RESERVA } from "./estados";
 import { esFechaPasada, validarBloqueReservable, type AhoraLocal } from "./fechas";
 
 const MENSAJE_FECHA = "Usa el formato AAAA-MM-DD con una fecha real.";
@@ -55,3 +56,8 @@ export type CrearReserva = z.infer<ReturnType<typeof esquemaCrearReserva>>;
 
 /** Parámetros de la URL de GET /api/reservas/[id]. */
 export const esquemaIdReserva = z.object({ id: idDesdeTexto });
+
+/** Cuerpo de PATCH /api/reservas/[id]/estado. */
+export const esquemaCambioEstado = z.strictObject({
+  estado: z.enum(ESTADOS_RESERVA, { error: "Debe ser pendiente, confirmada o cancelada." }),
+});

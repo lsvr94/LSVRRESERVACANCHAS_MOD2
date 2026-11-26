@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { puedeCambiarEstado } from "../../lib/reservas/estados";
+import { mensajeTransicionNoPermitida, puedeCambiarEstado } from "../../lib/reservas/estados";
 
 describe("puedeCambiarEstado", () => {
   it("permite pendiente → confirmada", () => {
@@ -23,5 +23,13 @@ describe("puedeCambiarEstado", () => {
   it("quedarse en el mismo estado no es un cambio válido", () => {
     expect(puedeCambiarEstado("pendiente", "pendiente")).toBe(false);
     expect(puedeCambiarEstado("cancelada", "cancelada")).toBe(false);
+  });
+});
+
+describe("mensajeTransicionNoPermitida", () => {
+  it("explica qué cambio no se permite", () => {
+    expect(mensajeTransicionNoPermitida("cancelada", "pendiente")).toBe(
+      "No se puede pasar una reserva de cancelada a pendiente.",
+    );
   });
 });
